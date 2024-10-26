@@ -1,0 +1,4 @@
+*.pem
+*.der
+*.cert
+*.csr
