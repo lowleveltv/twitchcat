@@ -1,5 +1,7 @@
 *.pem
 *.der
-*.cert
+*.crt
 *.csr
 *.key
+*.env
+
