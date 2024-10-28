@@ -23,24 +23,27 @@ import (
 
 	"encoding/pem"
 
-  //"github.com/alexflint/go-arg"
+  "github.com/alexflint/go-arg"
 )
 
-// TODO: turn this into an env variable
-var HASH_SALT = "this-is-a-secret-salt"
+var HASH_SALT = os.Getenv("TWITCHCAT_SALT")
+var session_secret = os.Getenv("TWITCHCAT_SESSION_SECRET")
+var store = sessions.NewCookieStore([]byte("this_is"))
 
-// TODO: CHANGE THIS LITERALLY RIGHT NOW
-var store = sessions.NewCookieStore([]byte("thisisakey"))
+var args struct {
+  RootCACert string
+  RootCAKey string
+}
 
 func registerProviders() {
   goth.UseProviders(
-    twitch.New(os.Getenv("TWITCH_CLIENTID"), os.Getenv("TWITCH_CLIENTSECRET"), "http://localhost:3000/auth/twitch/callback", ""),
+    twitch.New(os.Getenv("TWITCH_CLIENTID"), os.Getenv("TWITCH_CLIENTSECRET"), os.Getenv("TWITCH_REDIRECT"), ""),
   )
 }
 
 
 func generateUserCert(username string) (*bytes.Buffer, *bytes.Buffer, error) {
-  rootCACertBytes, err := os.ReadFile("./key/rootCA.pem")
+  rootCACertBytes, err := os.ReadFile(args.RootCACert)
   if (err != nil) {
     fmt.Println(err)
     return nil, nil, err
@@ -54,7 +57,7 @@ func generateUserCert(username string) (*bytes.Buffer, *bytes.Buffer, error) {
   }
 
 
-  rootCAPrivBytes, err := os.ReadFile("./key/rootCA.key")
+  rootCAPrivBytes, err := os.ReadFile(args.RootCAKey)
   if (err != nil) {
     fmt.Println(err)
     return nil, nil, err
@@ -118,19 +121,27 @@ func createCallbackServer() *pat.Router {
     if (session.Values["logged"] != true) {
       res.WriteHeader(http.StatusForbidden)
       res.Write([]byte("Not authenticated."))
-    }
+      return
+    } 
 
     username := session.Values["user"]
+    if (username == nil) {
+      res.WriteHeader(http.StatusForbidden)
+      res.Write([]byte("Not authenticated."))
+      return
+    }
+
     userPub, userPriv, err := generateUserCert(username.(string))
     if (err != nil) {
       fmt.Println(err)
+      return
     }
 
     userFile, _ := os.CreateTemp("./", "*")
     userFile.Write(userPub.Bytes())
     userFile.Write(userPriv.Bytes())
     res.Header().Set("Content-Disposition", "attachment; filename="+ username.(string) + ".key")
-    res.Header().Add("content-type", "application/pkcs8")
+    res.Header().Add("Content-Type", "application/pkcs8")
     http.ServeFile(res, req, userFile.Name())
     os.Remove(userFile.Name())
 
@@ -156,12 +167,13 @@ func createCallbackServer() *pat.Router {
       return
     }
 
-    fmt.Println(session.Values)
-
+    // TODO: render a template
     res.WriteHeader(http.StatusOK)
-    res.Write([]byte("Hello, "))
+    res.Header().Add("Content-Type", "text/html")
+    res.Write([]byte("<html>Hello, "))
     res.Write([]byte(user.Name))
-    res.Write([]byte("!"))
+    res.Write([]byte("!<br><br>"))
+    res.Write([]byte("<a href=\"/key\">Get Your Key!</a></html>"))
 
   });
 
@@ -176,6 +188,8 @@ func createCallbackServer() *pat.Router {
 }
 
 func main() {
+  arg.MustParse(&args)
+
   fmt.Println("Establishing providers...")
   registerProviders()
   fmt.Println("Starting callback server...")
