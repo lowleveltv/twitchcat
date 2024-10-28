@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"log"
 	"os"
+  "github.com/alexflint/go-arg"
 )
 
 func generateCertPoolFromPath(path string) (*x509.CertPool, error) {
@@ -22,15 +23,15 @@ func generateCertPoolFromPath(path string) (*x509.CertPool, error) {
 }
 
 func main() {
-    log.SetFlags(log.Lshortfile)
-
-    pool, err := generateCertPoolFromPath("./key/rootCA.pem")
-    if err != nil {
-      log.Println(err)
-      return
+    var args struct {
+      Keyfile string
     }
 
-    cert, err := tls.LoadX509KeyPair("./key/client.crt", "./key/client.key")
+    arg.MustParse(&args)
+
+    log.SetFlags(log.Lshortfile)
+
+    cert, err := tls.LoadX509KeyPair(args.Keyfile, args.Keyfile)
     if err != nil {
       log.Println(err)
       return
@@ -38,9 +39,8 @@ func main() {
 
     conf := &tls.Config{
       Certificates: []tls.Certificate{cert},
-      RootCAs: pool,
       ClientAuth: tls.RequireAndVerifyClientCert,
-      ServerName: "lowlevel.server2",
+      InsecureSkipVerify: true,
     }
 
     conn, err := tls.Dial("tcp", "127.0.0.1:8443", conf)

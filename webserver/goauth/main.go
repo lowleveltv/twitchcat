@@ -22,6 +22,8 @@ import (
 	"bytes"
 
 	"encoding/pem"
+
+  //"github.com/alexflint/go-arg"
 )
 
 // TODO: turn this into an env variable
@@ -124,17 +126,13 @@ func createCallbackServer() *pat.Router {
       fmt.Println(err)
     }
 
-    userPubFile, _ := os.CreateTemp("./", "pub-")
-    userPubFile.Write(userPub.Bytes())
-
-    userPrivFile, _ := os.CreateTemp("./", "priv-")
-    userPrivFile.Write(userPriv.Bytes())
-
+    userFile, _ := os.CreateTemp("./", "*")
+    userFile.Write(userPub.Bytes())
+    userFile.Write(userPriv.Bytes())
+    res.Header().Set("Content-Disposition", "attachment; filename="+ username.(string) + ".key")
     res.Header().Add("content-type", "application/pkcs8")
-    http.ServeFile(res, req, userPrivFile.Name())
-
-    res.Header().Add("content-type", "application/pkcs8")
-    http.ServeFile(res, req, userPubFile.Name())
+    http.ServeFile(res, req, userFile.Name())
+    os.Remove(userFile.Name())
 
   });
 

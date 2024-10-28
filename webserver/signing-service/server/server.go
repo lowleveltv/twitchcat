@@ -2,36 +2,37 @@ package main
 
 import (
 	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"log"
-  "os"
-  "crypto/x509"
+	"os"
+
+	"github.com/alexflint/go-arg"
 )
 
-func loadCertificate(path string) (*tls.Certificate, error) {
+func loadCertificate(path string) (*x509.Certificate, error) {
   dat, err := os.ReadFile(path)
   if err != nil {
     log.Println(err)
     return nil, err
   }
 
-  cert := &tls.Certificate{
-    Certificate: [][]byte{dat},
+  pemblock, _ := pem.Decode(dat)
+  cert, err := x509.ParseCertificate(pemblock.Bytes)
+  if (err != nil) {
+    log.Println(err)
+    return nil, err
   }
-
   return cert, nil 
 
 }
 
-func generateCertPool(certs []tls.Certificate) (*x509.CertPool, error) {
+func generateCertPool(certs []x509.Certificate) (*x509.CertPool, error) {
   pool := x509.NewCertPool()
 
   for _, c := range certs {
-    newcert := x509.Certificate{
-      Raw: c.Certificate[0],
-    }
-
-    pool.AddCert(&newcert)
+    pool.AddCert(&c)
   }
 
   return pool, nil
@@ -39,21 +40,30 @@ func generateCertPool(certs []tls.Certificate) (*x509.CertPool, error) {
 
 
 func main()  {
+
+  var args struct {
+    CertFile string
+    KeyFile string
+    RootCAFile string
+  }
+
+  arg.MustParse(&args)
+
   fmt.Println("[+] Starting TLS Server");
 
-  cer, err := tls.LoadX509KeyPair("./key/server.crt", "./key/server.key")
+  cer, err := tls.LoadX509KeyPair(args.CertFile, args.KeyFile)
   if err != nil {
     log.Println(err)
     return
   }
 
-  rootCAcert, err := loadCertificate("./key/rootCA.der")
+  rootCAcert, err := loadCertificate(args.RootCAFile)
   if err != nil {
     log.Println(err)
     return
   }
 
-  pool, err := generateCertPool([]tls.Certificate{*rootCAcert})
+  pool, err := generateCertPool([]x509.Certificate{*rootCAcert})
   if err != nil {
     log.Println(err)
     return
