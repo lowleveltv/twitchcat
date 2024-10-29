@@ -73,7 +73,7 @@ func main()  {
     Certificates: []tls.Certificate{cer},
     ClientAuth: tls.RequireAndVerifyClientCert,
     RootCAs: pool,
-    ServerName: "lowlevel.server2",
+    ClientCAs: pool,
   }
 
   sock, err := tls.Listen("tcp", ":8443", config)
