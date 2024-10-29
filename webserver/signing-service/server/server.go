@@ -91,7 +91,11 @@ func main()  {
       continue
     }
 
-    fmt.Println("[!] Accepted a client connection!")
+    t := conn.(*tls.Conn)
+    t.Handshake()
+    username := t.ConnectionState().PeerCertificates[0].Subject.Organization
+
+    fmt.Printf("[!] %v connected!\n", string(username[0]))
 
     conn.Write([]byte("Hello world, you are ~*authenticated*~\n"));
 
