@@ -25,6 +25,7 @@ func generateCertPoolFromPath(path string) (*x509.CertPool, error) {
 func main() {
     var args struct {
       Keyfile string
+      Host string
     }
 
     arg.MustParse(&args)
@@ -36,14 +37,15 @@ func main() {
       log.Println(err)
       return
     }
-
+  
+    
     conf := &tls.Config{
       Certificates: []tls.Certificate{cert},
       ClientAuth: tls.RequireAndVerifyClientCert,
       InsecureSkipVerify: true,
     }
 
-    conn, err := tls.Dial("tcp", "127.0.0.1:8443", conf)
+    conn, err := tls.Dial("tcp", args.Host, conf)
     if err != nil {
         log.Println(err)
         return

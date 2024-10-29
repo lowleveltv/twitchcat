@@ -93,7 +93,15 @@ func main()  {
 
     t := conn.(*tls.Conn)
     t.Handshake()
-    username := t.ConnectionState().PeerCertificates[0].Subject.Organization
+    peers := t.ConnectionState().PeerCertificates
+    
+    if (len(peers) != 1) {
+      fmt.Println("[!] Was not presented a cert by the connection")
+      conn.Close()
+      continue
+    }
+
+    username := peers[0].Subject.Organization
 
     fmt.Printf("[!] %v connected!\n", string(username[0]))
 
