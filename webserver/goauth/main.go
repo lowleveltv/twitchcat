@@ -152,6 +152,7 @@ func createCallbackServer() *pat.Router {
     user, err := gothic.CompleteUserAuth(res, req);
     if err != nil {
       fmt.Println(err)
+      http.Redirect(res, req, "/auth/twitch", http.StatusMovedPermanently)
       return;
     }
 
