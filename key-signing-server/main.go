@@ -148,6 +148,11 @@ func createCallbackServer() *pat.Router {
   });
 
   
+  router.Get("/", func (res http.ResponseWriter, req *http.Request) {
+    http.Redirect(res, req, "/auth/twitch", http.StatusMovedPermanently);
+    return;
+  })
+
   router.Get("/auth/{provider}/callback", func (res http.ResponseWriter, req *http.Request) {
     user, err := gothic.CompleteUserAuth(res, req);
     if err != nil {
