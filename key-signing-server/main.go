@@ -113,6 +113,27 @@ func generateUserCert(username string) (*bytes.Buffer, *bytes.Buffer, error) {
 
 }
 
+func createKey(username string) {
+    userPath:= "./generated-keys/" + username + ".key"
+    userFile, err := os.Create(userPath)
+    if (err != nil) {
+      fmt.Println("Damn girl thats an err: ", err)
+      return
+    }
+
+    userPub, userPriv, err := generateUserCert(username)
+    if (err != nil) {
+      fmt.Println(err)
+    }
+
+    userFile.Write(userPub.Bytes())
+    userFile.Write(userPriv.Bytes())
+
+    userFile.Close()
+
+    return
+}
+
 func createCallbackServer() *pat.Router {
   router := pat.New()
 
@@ -131,20 +152,21 @@ func createCallbackServer() *pat.Router {
       return
     }
 
-    userPub, userPriv, err := generateUserCert(username.(string))
-    if (err != nil) {
-      fmt.Println(err)
-      return
+    userFile := "./generated-keys/" + username.(string) + ".key"
+    _, err := os.Stat(userFile)
+    
+    // the file is already generated
+    if err == nil {
+      res.Header().Set("Content-Disposition", "attachment; filename="+ username.(string) + ".key")
+      res.Header().Add("Content-Type", "application/pkcs8")
+      http.ServeFile(res, req, userFile)
+    // need to generate the file
+    } else {
+      go createKey(username.(string))
+      res.WriteHeader(http.StatusOK)
+      res.Header().Add("Content-Type", "text/html")
+      res.Write([]byte("Key is being generated..."))
     }
-
-    userFile, _ := os.CreateTemp("./", "*")
-    userFile.Write(userPub.Bytes())
-    userFile.Write(userPriv.Bytes())
-    res.Header().Set("Content-Disposition", "attachment; filename="+ username.(string) + ".key")
-    res.Header().Add("Content-Type", "application/pkcs8")
-    http.ServeFile(res, req, userFile.Name())
-    os.Remove(userFile.Name())
-
   });
 
   
@@ -193,8 +215,19 @@ func createCallbackServer() *pat.Router {
   return router
 }
 
+func createKeyDirectory() {
+  err := os.Mkdir("./generated-keys", 0755)
+  if err != nil {
+    fmt.Println("Error creating directory: ", err)
+  }
+
+  return
+}
+
 func main() {
   arg.MustParse(&args)
+
+  createKeyDirectory()
 
   fmt.Println("Establishing providers...")
   registerProviders()
