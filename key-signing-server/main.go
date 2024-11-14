@@ -85,7 +85,7 @@ func generateUserCert(username string) (*bytes.Buffer, *bytes.Buffer, error) {
     
   }
 
-  certPrivateKey, err := rsa.GenerateKey(rand.Reader, 4096)
+  certPrivateKey, err := rsa.GenerateKey(rand.Reader, 1024)
   if (err != nil) {
     fmt.Println(err)
     return nil, nil, err
