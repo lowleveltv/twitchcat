@@ -131,5 +131,4 @@ func main() {
 	defer sock.Close()
 
 	handleConnections(sock, args.RemoteTargetAddr, args.RemoteTargetPort)
-
 }
