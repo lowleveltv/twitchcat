@@ -122,7 +122,7 @@ func main() {
 		ClientCAs:    pool,
 	}
 
-	sock, err := tls.Listen("tcp", ":"+args.RemoteTargetPort, config)
+	sock, err := tls.Listen("tcp", ":4444", config)
 	if err != nil {
 		log.Println(err)
 		return
