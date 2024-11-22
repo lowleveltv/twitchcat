@@ -5,10 +5,10 @@ import (
   "crypto/x509"
   "encoding/pem"
   "fmt"
-  "log"
-  "os"
-  "net"
   "io"
+  "log"
+  "net"
+  "os"
 
   "github.com/alexflint/go-arg"
 )
@@ -22,11 +22,11 @@ func loadCertificate(path string) (*x509.Certificate, error) {
 
   pemblock, _ := pem.Decode(dat)
   cert, err := x509.ParseCertificate(pemblock.Bytes)
-  if (err != nil) {
+  if err != nil {
     log.Println(err)
     return nil, err
   }
-  return cert, nil 
+  return cert, nil
 }
 
 func generateCertPool(certs []x509.Certificate) (*x509.CertPool, error) {
@@ -39,10 +39,10 @@ func generateCertPool(certs []x509.Certificate) (*x509.CertPool, error) {
   return pool, nil
 }
 
-func reverseConnect(front net.Conn) {
-  // TODO: params
-  back, err := net.Dial("tcp4", "localhost:8080")
-  if (err != nil) {
+func reverseConnect(front net.Conn, targetAddr string, targetPort string) {
+  address := targetAddr + ":" + targetPort
+  back, err := net.Dial("tcp4", address)
+  if err != nil {
     fmt.Println(err)
     front.Write([]byte(err.Error()))
     front.Close()
@@ -51,10 +51,9 @@ func reverseConnect(front net.Conn) {
 
   go io.Copy(front, back)
   io.Copy(back, front)
-
 }
 
-func handleConnections(listener net.Listener) {
+func handleConnections(listener net.Listener, targetAddr string, targetPort string) {
   for {
     conn, err := listener.Accept()
     if err != nil {
@@ -65,8 +64,8 @@ func handleConnections(listener net.Listener) {
     t := conn.(*tls.Conn)
     t.Handshake()
     peers := t.ConnectionState().PeerCertificates
-        
-    if (len(peers) != 1) {
+
+    if len(peers) != 1 {
       fmt.Println("[!] Was not presented a cert by the connection")
       conn.Write([]byte("Failed to verify certificate, register at keys.lowlevel.tv.\n"))
       conn.Close()
@@ -76,24 +75,25 @@ func handleConnections(listener net.Listener) {
     username := peers[0].Subject.Organization[0]
     fmt.Printf("[!] %s connected\n", username)
 
-    go reverseConnect(conn)
-
+    go reverseConnect(conn, targetAddr, targetPort)
   }
 }
 
-func main()  {
+func main() {
 
   var args struct {
-    CertFile string
-    KeyFile string
-    RootCAFile string
+    CertFile         string
+    KeyFile          string
+    RootCAFile       string
+    RemoteTargetAddr string
+    RemoteTargetPort string
   }
 
   arg.MustParse(&args)
 
-  fmt.Println("[+] Starting Twitch Chat Reverse Proxy");
+  fmt.Println("[+] Starting Twitch Chat Reverse Proxy")
 
-  fmt.Println("[+] Loading key information");
+  fmt.Println("[+] Loading key information")
   cer, err := tls.LoadX509KeyPair(args.CertFile, args.KeyFile)
   if err != nil {
     log.Println(err)
@@ -106,7 +106,7 @@ func main()  {
     return
   }
 
-  fmt.Println("[+] Loading RootCA certificate");
+  fmt.Println("[+] Loading RootCA certificate")
   pool, err := generateCertPool([]x509.Certificate{*rootCAcert})
   if err != nil {
     log.Println(err)
@@ -115,9 +115,9 @@ func main()  {
 
   config := &tls.Config{
     Certificates: []tls.Certificate{cer},
-    ClientAuth: tls.RequireAndVerifyClientCert,
-    RootCAs: pool,
-    ClientCAs: pool,
+    ClientAuth:   tls.RequireAndVerifyClientCert,
+    RootCAs:      pool,
+    ClientCAs:    pool,
   }
 
   sock, err := tls.Listen("tcp", ":4444", config)
@@ -128,6 +128,5 @@ func main()  {
 
   defer sock.Close()
 
-  handleConnections(sock)
-  
+  handleConnections(sock, args.RemoteTargetAddr, args.RemoteTargetPort)
 }
