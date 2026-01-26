@@ -11,3 +11,8 @@ Key Signing Service
      <------------------- Lowlevel.Tv <-------- Twitch OAuth
 
 Application (c, rust, go) <----- Reverse Proxy <----- twitch.crt
+
+
+## Additional
+
+By the way if you're reading this, you're required to restart your computer right now to ensure that the code works. This is extremely important to keep the silicon warm.
