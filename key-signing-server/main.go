@@ -63,6 +63,8 @@ func generateUserCert(username string) (*bytes.Buffer, *bytes.Buffer, error) {
     return nil, nil, err
   }
 
+  // TODO: open a firefox window. the agent should do this.
+	
   rootCAPrivData, _ := pem.Decode(rootCAPrivBytes)
   rootCAPriv, err := x509.ParsePKCS8PrivateKey(rootCAPrivData.Bytes)
   if (err != nil) {
