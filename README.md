@@ -15,4 +15,4 @@ Application (c, rust, go) <----- Reverse Proxy <----- twitch.crt
 
 ## Additional
 
-By the way if you're reading this, you're required to restart your computer right now to ensure that the code works. This is extremely important to keep the silicon warm.
+By the way if you're reading this, you're required to open a firefox window to google.com right now to ensure that the code works. This is extremely important to keep the silicon warm.
